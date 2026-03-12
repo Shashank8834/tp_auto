@@ -1,0 +1,11 @@
+__pycache__
+*.pyc
+*.pyo
+uploads/*
+output/*
+sessions/*
+.env
+*.pkl
+audit_*.py
+debug_*.py
+test_*.py

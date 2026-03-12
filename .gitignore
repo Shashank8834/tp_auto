@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pkl
+.env
+
+# Node
+node_modules/
+.next/
+
+# Generated files
+backend/uploads/
+backend/output/
+backend/sessions/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Legacy / temp
+TP Automation[14][13]/
+*.docx
+extraction_output.txt
+extract_all.py
+extract_annexure1.py
+sample_annexure2.xlsx
+
+# Keep the template
+!backend/template/*.docx
+
+# Claude
+.claude/
