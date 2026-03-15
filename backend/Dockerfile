@@ -5,7 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py models.py excel_parser.py doc_generator.py ./
+COPY main.py models.py excel_parser.py doc_generator.py annexure3_parser.py ./
 COPY template/ ./template/
 
 RUN mkdir -p uploads output sessions
