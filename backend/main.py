@@ -20,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from models import GenerateReportRequest, CompanyInfo, ConnectedPerson, RelatedParty, TestedPartyFinancials
 from excel_parser import parse_annexure2, BenchmarkingData
 from doc_generator import generate_report_to_file
+from annexure3_parser import parse_annexure3
 
 app = FastAPI(
     title="TP Report Generator",
@@ -215,6 +216,37 @@ async def upload_excel(file: UploadFile = File(...)):
             ],
         }
     }
+
+
+@app.post("/api/upload-annexure3")
+async def upload_annexure3(file: UploadFile = File(...)):
+    """Upload Annexure 3 Excel file to extract financials and connected persons."""
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Please upload an Excel file (.xlsx or .xls)")
+
+    # Save to a temp location
+    temp_dir = os.path.join(UPLOAD_DIR, f"a3_{uuid.uuid4().hex[:8]}")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_path = os.path.join(temp_dir, file.filename)
+
+    try:
+        with open(file_path, "wb") as f:
+            content = await file.read()
+            f.write(content)
+
+        result = parse_annexure3(file_path)
+        return {
+            "filename": file.filename,
+            "financials": result["financials"],
+            "connected_persons": result["connected_persons"],
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not parse Annexure 3 file: {str(e)}"
+        )
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 @app.post("/api/generate")

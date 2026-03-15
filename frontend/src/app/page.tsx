@@ -56,6 +56,9 @@ export default function HomePage() {
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [generatedReportId, setGeneratedReportId] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const annexure3InputRef = useRef<HTMLInputElement>(null);
+  const [annexure3FileName, setAnnexure3FileName] = useState("");
+  const [annexure3Loading, setAnnexure3Loading] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     company_name: "",
@@ -101,6 +104,51 @@ export default function HomePage() {
       ...prev,
       connected_persons: prev.connected_persons.filter((_, i) => i !== index),
     }));
+  };
+
+  const handleAnnexure3Upload = async (file: File) => {
+    setAnnexure3Loading(true);
+    setError("");
+    try {
+      const fd = new window.FormData();
+      fd.append("file", file);
+      const res = await fetch(`${API_URL}/api/upload-annexure3`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || "Upload failed");
+      }
+      const data = await res.json();
+      setAnnexure3FileName(data.filename);
+
+      // Auto-fill financials
+      const fin = data.financials;
+      setFormData((prev) => ({
+        ...prev,
+        operating_revenue: fin.operating_revenue ? String(fin.operating_revenue) : prev.operating_revenue,
+        cost_of_sales: fin.cost_of_sales ? String(fin.cost_of_sales) : prev.cost_of_sales,
+        admin_expenses: fin.admin_expenses ? String(fin.admin_expenses) : prev.admin_expenses,
+        other_expenses: fin.other_expenses ? String(fin.other_expenses) : prev.other_expenses,
+        staff_salary: fin.staff_salary ? String(fin.staff_salary) : prev.staff_salary,
+        partner_salaries: fin.partner_salaries ? String(fin.partner_salaries) : prev.partner_salaries,
+        // Auto-fill connected persons if found
+        connected_persons:
+          data.connected_persons && data.connected_persons.length > 0
+            ? data.connected_persons.map((p: any) => ({
+                name: p.name || "",
+                designation: p.designation || "",
+                remuneration: p.remuneration || "",
+                roles: p.roles || "",
+              }))
+            : prev.connected_persons,
+      }));
+    } catch (e: any) {
+      setError(e.message || "Failed to parse Annexure 3 file");
+    } finally {
+      setAnnexure3Loading(false);
+    }
   };
 
   const handleFileUpload = async (file: File) => {
@@ -346,6 +394,51 @@ export default function HomePage() {
         <div className="glass-card slide-up">
           <h2 className="card-title">Connected Persons / Related Parties</h2>
           <p className="card-subtitle">Add details for each connected person (KMP, directors, partners)</p>
+
+          {/* Annexure 3 Upload Zone */}
+          <input
+            ref={annexure3InputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleAnnexure3Upload(file);
+            }}
+          />
+          <div
+            className={`upload-zone ${annexure3FileName ? "uploaded" : ""}`}
+            style={{ marginBottom: "1.5rem", padding: "1.25rem" }}
+            onClick={() => annexure3InputRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.currentTarget.classList.add("drag-over");
+            }}
+            onDragLeave={(e) => e.currentTarget.classList.remove("drag-over")}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.currentTarget.classList.remove("drag-over");
+              const file = e.dataTransfer.files[0];
+              if (file) handleAnnexure3Upload(file);
+            }}
+          >
+            <div className="upload-icon" style={{ fontSize: "1.5rem" }}>
+              {annexure3Loading ? "..." : annexure3FileName ? "\u2705" : "\uD83D\uDCC2"}
+            </div>
+            <div className="upload-text" style={{ fontSize: "0.95rem" }}>
+              {annexure3Loading
+                ? "Parsing Annexure 3..."
+                : annexure3FileName
+                ? `Auto-filled from: ${annexure3FileName}`
+                : "Upload Annexure 3 to auto-fill connected persons & financials"}
+            </div>
+            <div className="upload-hint">
+              {annexure3FileName
+                ? "Click to re-upload a different file"
+                : "Or enter details manually below"}
+            </div>
+          </div>
+
           {formData.connected_persons.map((person, idx) => (
             <div key={idx} className="person-card fade-in">
               <div className="person-header">
